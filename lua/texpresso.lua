@@ -74,6 +74,13 @@ local function format_color(c)
   return {r, g, b}
 end
 
+-- Tell VIM to display file:line
+local function synctex_backward(file, line)
+  if not(pcall(function() vim.cmd("b +" .. line .. " " .. file) end)) then
+    vim.cmd("e +" .. line .. " " .. file)
+  end
+end
+
 -- TeXpresso process internal state
 local job = {
   queued = nil,
@@ -87,6 +94,11 @@ local job = {
 -- TODO: handle message, right now they are only logged
 local function process_message(json)
   p(json)
+  if json[1] == "reset-sync" then
+    job.generation = {}
+  elseif json[1] == "synctex" then
+    vim.schedule(function() synctex_backward(json[2], json[3]) end)
+  end
 end
 
 -- Send a command to TeXpresso
