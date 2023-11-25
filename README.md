@@ -45,7 +45,7 @@ https://github.com/let-def/texpresso.vim/assets/1048096/f69b1508-a069-4003-9578-
 
 Synchronization from Editor to Document (SyncTeX forward):
 
-https://github.com/let-def/texpresso.vim/assets/1048096/650ee9ea-39ad-451a-85d3-5474016e5a8f
+https://github.com/let-def/texpresso.vim/assets/1048096/78560d20-391e-490e-ad76-c8cce1004ce5
 
 Theming, Light/Dark modes: 😎
 
