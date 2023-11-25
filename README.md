@@ -49,4 +49,4 @@ https://github.com/let-def/texpresso.vim/assets/1048096/650ee9ea-39ad-451a-85d3-
 
 Theming, Light/Dark modes: 😎
 
-
+https://github.com/let-def/texpresso.vim/assets/1048096/a072181b-82d3-42df-9683-7285ed1b32fc
