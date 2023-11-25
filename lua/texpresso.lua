@@ -80,6 +80,36 @@ local function synctex_backward(file, line)
   end
 end
 
+-- Manage quickfix list
+
+-- Allocate and reuse a quickfix id
+local qfid = -1
+local function getqfid()
+  local id = vim.fn.getqflist({id=qfid}).id
+  if id > 0 then
+    return id
+  end
+  vim.fn.setqflist({}, ' ', { title = "TeXpresso" })
+  qfid = vim.fn.getqflist({id=0}).id
+  return qfid
+end
+
+-- Set quickfix items
+local function setqf(items)
+  vim.fn.setqflist({}, 'r', {id=getqfid(), items = items})
+end
+
+-- Parse a Tectonic diagnostic line to quickfix format
+local function format_fix(line)
+  local typ, f, l, txt
+  typ, f, l, txt = string.match(line, "([a-z]+): (.*):(%d*): (.*)")
+  if typ then
+    return { type = typ, filename = f, lnum = l, text = txt }
+  else
+    return { text = line }
+  end
+end
+
 -- TeXpresso process internal state
 local job = {
   queued = nil,
@@ -87,16 +117,63 @@ local job = {
   generation = {},
 }
 
--- Internal functions to communicate with TeXpresso 
+-- Log output from TeX
+M.log = {}
+
+-- Problems (warnings and errors) emitted by TeX
+M.fix = {}
+M.fixcursor = 0
+
+local function shrink(tbl, count)
+  for _ = count, #tbl - 1 do
+    table.remove(tbl)
+  end
+end
+
+local function expand(tbl, count, default)
+  for i = #tbl + 1, count do
+    table.insert(tbl, i, default)
+  end
+end
+
+-- Internal functions to communicate with TeXpresso
 
 -- Process a message received from TeXpresso
 -- TODO: handle message, right now they are only logged
 local function process_message(json)
   p(json)
-  if json[1] == "reset-sync" then
+  local msg = json[1]
+  if msg == "reset-sync" then
     job.generation = {}
-  elseif json[1] == "synctex" then
+  elseif msg == "synctex" then
     vim.schedule(function() synctex_backward(json[2], json[3]) end)
+  elseif msg == "truncate-lines" then
+    local name = json[2]
+    local count = json[3]
+    if name == "log" then
+      shrink(M.log, count)
+      expand(M.log, count, "")
+    elseif name == "out" then
+      expand(M.fix, count, {})
+      M.fixcursor = count
+    end
+  elseif msg == "append-lines" then
+    local name = json[2]
+    if name == "log" then
+      for i=3,#json do
+        table.insert(M.log, json[i])
+      end
+    elseif name == "out" then
+      for i=3,#json do
+        local cursor = M.fixcursor + 1
+        M.fixcursor = cursor
+        M.fix[cursor] = format_fix(json[i])
+      end
+      vim.schedule(function() setqf(M.fix) end)
+    end
+  elseif msg == "flush" then
+    shrink(M.fix, M.fixcursor)
+    vim.schedule(function() setqf(M.fix) end)
   end
 end
 
@@ -171,18 +248,27 @@ function M.previous_page()
 end
 
 -- Go to the page under the cursor
+local last_line = -1
+local last_file = ""
+
 function M.synctex_forward()
-  local l,c = unpack(vim.api.nvim_win_get_cursor(0))
-  M.send("synctex-forward", vim.api.nvim_buf_get_name(0), l)
-end 
+  local line,_col = unpack(vim.api.nvim_win_get_cursor(0))
+  local file = vim.api.nvim_buf_get_name(0)
+  if last_line == line and last_file == file then
+    return
+  end
+  last_line = line
+  last_file = file
+  M.send("synctex-forward", file, line)
+end
 
 -- Start a new TeXpresso viewer
 function M.launch(args)
   if job.process then
     chanclose(job.process)
   end
-  cmd = {"texpresso", "-json"}
-  for _, arg in ipairs(args) do 
+  cmd = {"texpresso", "-json", "-lines"}
+  for _, arg in ipairs(args) do
       table.insert(cmd, arg)
   end
   job.queued = ""
