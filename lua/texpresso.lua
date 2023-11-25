@@ -5,19 +5,18 @@ local M = {}
 -- Debug logging function, silent by default
 -- Change this variable to redirect the debug log.
 -- E.g. require('texpresso').logger = foo
-function M.logger(text)
-end
+M.logger = nil
 
 -- Debug printing function
 -- It uses vim.inspect to pretty-print and vim.schedule
 -- to delay printing when vim is textlocked.
 local function p(...)
-  local args = {...}
-  if next(args, next(args)) == nil then
-    args = args[1]
+  if M.logger then
+    local args = {...}
+    if #args == 1 then args = args[1] end
+    local text = vim.inspect(args)
+    vim.schedule(function() M.logger(text) end)
   end
-  local text = vim.inspect(args)
-  vim.schedule(function() M.logger(text) end)
 end
 
 -- ID of the buffer storing TeXpresso log
