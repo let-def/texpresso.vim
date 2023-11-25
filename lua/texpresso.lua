@@ -49,7 +49,7 @@ local function buffer_append(buf, lines)
   vim.api.nvim_buf_set_lines(buf, -2, -1, false, lines)
 end
 
--- Get buffer lines as a single string, 
+-- Get buffer lines as a single string,
 -- suitable for serialization to TeXpresso.
 local function buffer_get_lines(buf, first, last)
   if first == last then
@@ -62,7 +62,7 @@ end
 -- Format a color VIM color to a TeXpresso color.
 -- VIM represents a color as a single integer, encoding it as 0xRRGGBB.
 -- RR, GG, BB are 8-bit unsigned integers.
--- TeXpresso represents a color as triple (R, G, B). 
+-- TeXpresso represents a color as triple (R, G, B).
 -- R, G, B are floating points in the 0.0 .. 1.0 range.
 local function format_color(c)
   local b = math.fmod(c, 256) / 255
