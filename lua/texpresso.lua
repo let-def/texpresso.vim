@@ -74,7 +74,9 @@ local function format_color(c)
 end
 
 -- Tell VIM to display file:line
+local skip_synctex = false
 local function synctex_backward(file, line)
+  skip_synctex = true
   if not(pcall(function() vim.cmd("b +" .. line .. " " .. file) end)) then
     vim.cmd("e +" .. line .. " " .. file)
   end
@@ -248,10 +250,21 @@ function M.previous_page()
 end
 
 -- Go to the page under the cursor
+function M.synctex_forward()
+  local line,_col = unpack(vim.api.nvim_win_get_cursor(0))
+  local file = vim.api.nvim_buf_get_name(0)
+  M.send("synctex-forward", file, line)
+end
+
 local last_line = -1
 local last_file = ""
 
-function M.synctex_forward()
+function M.synctex_forward_hook()
+  if skip_synctex then
+    skip_synctex = false
+    return
+  end
+
   local line,_col = unpack(vim.api.nvim_win_get_cursor(0))
   local file = vim.api.nvim_buf_get_name(0)
   if last_line == line and last_file == file then
@@ -303,7 +316,7 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 
 vim.api.nvim_create_autocmd("CursorMoved", {
   pattern = {"*.tex"},
-  callback = M.synctex_forward
+  callback = M.synctex_forward_hook
 })
 
 -- VIM commands
