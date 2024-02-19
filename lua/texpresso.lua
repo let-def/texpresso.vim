@@ -232,11 +232,13 @@ end
 -- Use VIM theme in TeXpresso
 function M.theme()
   local colors = vim.api.nvim_get_hl_by_name("Normal", true)
-  M.send(
-    "theme",
-    format_color(colors.background),
-    format_color(colors.foreground)
-  )
+  if colors.background and colors.foreground then
+    M.send(
+      "theme",
+      format_color(colors.background),
+      format_color(colors.foreground)
+    )
+  end
 end
 
 -- Go to next page
@@ -278,7 +280,7 @@ end
 -- Start a new TeXpresso viewer
 function M.launch(args)
   if job.process then
-    chanclose(job.process)
+    vim.fn.chanclose(job.process)
   end
   cmd = {"texpresso", "-json", "-lines"}
   for _, arg in ipairs(args) do
