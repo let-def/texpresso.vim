@@ -55,7 +55,7 @@ local function buffer_get_lines(buf, first, last)
   if first == last then
     return ""
   else
-    return vim.fn.join(vim.api.nvim_buf_get_lines(buf, first, last, false), "\n") .. "\n"
+    return table.concat(vim.api.nvim_buf_get_lines(buf, first, last, false), "\n") .. "\n"
   end
 end
 
