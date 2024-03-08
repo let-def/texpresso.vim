@@ -28,14 +28,14 @@ local log_buffer_id = -1
 local function log_buffer()
   if not vim.api.nvim_buf_is_valid(log_buffer_id) then
     for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-      if vim.api.nvim_buf_get_name(buf) == "[texpresso-log]" then
+      if vim.api.nvim_buf_get_name(buf) == "texpresso-log" then
         log_buffer_id = buf
       end
     end
   end
   if not vim.api.nvim_buf_is_valid(log_buffer_id) then
     log_buffer_id = vim.api.nvim_create_buf(true, true)
-    vim.api.nvim_buf_set_name(log_buffer_id, "[texpresso-log]")
+    vim.api.nvim_buf_set_name(log_buffer_id, "texpresso-log")
   end
   return log_buffer_id
 end
