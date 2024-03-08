@@ -300,7 +300,11 @@ function M.launch(args)
         end
       end,
       on_stderr = function(j, d, e)
-        buffer_append(log_buffer(), d)
+        local buf = log_buffer()
+        buffer_append(buf, d)
+        if vim.api.nvim_buf_line_count(buf) > 8000 then
+          vim.api.nvim_buf_set_lines(buf, 0, -4000, false, {})
+        end
       end,
       on_exit = function()
         job.process = nil
