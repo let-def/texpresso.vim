@@ -98,7 +98,9 @@ end
 
 -- Set quickfix items
 local function setqf(items)
-  vim.fn.setqflist({}, 'r', {id=getqfid(), items = items})
+  local idx
+  idx = vim.fn.getqflist({id=getqfid(), idx=0}).idx
+  vim.fn.setqflist({}, 'r', {id=getqfid(), items = items, idx=idx})
 end
 
 -- Parse a Tectonic diagnostic line to quickfix format
