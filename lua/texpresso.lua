@@ -311,7 +311,12 @@ function M.launch(args)
         job.queued = table.remove(data)
         for _, line in ipairs(data) do
           if line ~= "" then
-            process_message(vim.json.decode(line))
+            local ok, val = pcall(function ()
+              process_message(vim.json.decode(line))
+            end)
+            if not ok then
+              p("error while processing input", line, val)
+            end
           end
         end
       end,
