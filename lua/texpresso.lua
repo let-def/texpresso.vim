@@ -299,7 +299,7 @@ function M.launch(args)
   if job.process then
     vim.fn.chanclose(job.process)
   end
-  cmd = { M.texpresso_path, '-json', '-lines' }
+  local cmd = { M.texpresso_path, '-json', '-lines' }
 
   if #args == 0 then
     args = M.last_args
