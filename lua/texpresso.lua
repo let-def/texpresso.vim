@@ -230,14 +230,14 @@ function M.attach(...)
   local generation = job.generation
   M.reload(buf)
   vim.api.nvim_buf_attach(buf, false, {
-    on_detach = function(_detach, buf)
+    on_detach = function(_, buf)
       M.send('close', vim.api.nvim_buf_get_name(buf))
     end,
-    on_reload = function(_reload, buf)
+    on_reload = function(_, buf)
       M.reload(buf)
       generation = job.generation
     end,
-    on_lines = function(_lines, buf, _tick, first, oldlast, newlast, _bytes)
+    on_lines = function(_, buf, _, first, oldlast, newlast, _)
       if generation == job.generation then
         M.change_lines(buf, first, oldlast - first, newlast)
       else
@@ -270,7 +270,7 @@ end
 
 -- Go to the page under the cursor
 function M.synctex_forward()
-  local line, _col = unpack(vim.api.nvim_win_get_cursor(0))
+  local line, _ = unpack(vim.api.nvim_win_get_cursor(0))
   local file = vim.api.nvim_buf_get_name(0)
   M.send('synctex-forward', file, line)
 end
@@ -284,7 +284,7 @@ function M.synctex_forward_hook()
     return
   end
 
-  local line, _col = unpack(vim.api.nvim_win_get_cursor(0))
+  local line, _ = unpack(vim.api.nvim_win_get_cursor(0))
   local file = vim.api.nvim_buf_get_name(0)
   if last_line == line and last_file == file then
     return
@@ -316,7 +316,7 @@ function M.launch(args)
   end
   job.queued = ''
   job.process = vim.fn.jobstart(cmd, {
-    on_stdout = function(j, data, e)
+    on_stdout = function(_, data, _)
       if job.queued then
         data[1] = job.queued .. data[1]
       end
@@ -332,7 +332,7 @@ function M.launch(args)
         end
       end
     end,
-    on_stderr = function(j, d, e)
+    on_stderr = function(_, d, _)
       local buf = log_buffer()
       buffer_append(buf, d)
       if vim.api.nvim_buf_line_count(buf) > 8000 then
