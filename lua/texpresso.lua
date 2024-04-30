@@ -225,7 +225,6 @@ end
 
 -- Attach a hook to synchronize a buffer
 function M.attach(...)
-  local let
   local args = { ... }
   local buf = args[1] or 0
   local generation = job.generation
