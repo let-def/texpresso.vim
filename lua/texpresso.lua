@@ -2,7 +2,7 @@ local M = {}
 
 -- Configuration
 
-M.texpresso_path = "texpresso"
+M.texpresso_path = 'texpresso'
 
 -- Logging routines
 
@@ -19,10 +19,14 @@ M.last_args = {}
 -- to delay printing when vim is textlocked.
 local function p(...)
   if M.logger then
-    local args = {...}
-    if #args == 1 then args = args[1] end
+    local args = { ... }
+    if #args == 1 then
+      args = args[1]
+    end
     local text = vim.inspect(args)
-    vim.schedule(function() M.logger(text) end)
+    vim.schedule(function()
+      M.logger(text)
+    end)
   end
 end
 
@@ -35,14 +39,14 @@ local log_buffer_id = -1
 local function log_buffer()
   if not vim.api.nvim_buf_is_valid(log_buffer_id) then
     for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-      if vim.api.nvim_buf_get_name(buf) == "texpresso-log" then
+      if vim.api.nvim_buf_get_name(buf) == 'texpresso-log' then
         log_buffer_id = buf
       end
     end
   end
   if not vim.api.nvim_buf_is_valid(log_buffer_id) then
     log_buffer_id = vim.api.nvim_create_buf(true, true)
-    vim.api.nvim_buf_set_name(log_buffer_id, "texpresso-log")
+    vim.api.nvim_buf_set_name(log_buffer_id, 'texpresso-log')
   end
   return log_buffer_id
 end
@@ -60,9 +64,9 @@ end
 -- suitable for serialization to TeXpresso.
 local function buffer_get_lines(buf, first, last)
   if first == last then
-    return ""
+    return ''
   else
-    return table.concat(vim.api.nvim_buf_get_lines(buf, first, last, false), "\n") .. "\n"
+    return table.concat(vim.api.nvim_buf_get_lines(buf, first, last, false), '\n') .. '\n'
   end
 end
 
@@ -77,15 +81,17 @@ local function format_color(c)
   local g = math.fmod(c, 256) / 255
   c = math.floor(c / 256)
   local r = math.fmod(c, 256) / 255
-  return {r, g, b}
+  return { r, g, b }
 end
 
 -- Tell VIM to display file:line
 local skip_synctex = false
 local function synctex_backward(file, line)
   skip_synctex = true
-  if not(pcall(function() vim.cmd("b +" .. line .. " " .. file) end)) then
-    vim.cmd("e +" .. line .. " " .. file)
+  if not (pcall(function()
+    vim.cmd('b +' .. line .. ' ' .. file)
+  end)) then
+    vim.cmd('e +' .. line .. ' ' .. file)
   end
 end
 
@@ -94,26 +100,26 @@ end
 -- Allocate and reuse a quickfix id
 local qfid = -1
 local function getqfid()
-  local id = vim.fn.getqflist({id=qfid}).id
+  local id = vim.fn.getqflist({ id = qfid }).id
   if id > 0 then
     return id
   end
-  vim.fn.setqflist({}, ' ', { title = "TeXpresso" })
-  qfid = vim.fn.getqflist({id=0}).id
+  vim.fn.setqflist({}, ' ', { title = 'TeXpresso' })
+  qfid = vim.fn.getqflist({ id = 0 }).id
   return qfid
 end
 
 -- Set quickfix items
 local function setqf(items)
   local idx
-  idx = vim.fn.getqflist({id=getqfid(), idx=0}).idx
-  vim.fn.setqflist({}, 'r', {id=getqfid(), items = items, idx=idx})
+  idx = vim.fn.getqflist({ id = getqfid(), idx = 0 }).idx
+  vim.fn.setqflist({}, 'r', { id = getqfid(), items = items, idx = idx })
 end
 
 -- Parse a Tectonic diagnostic line to quickfix format
 local function format_fix(line)
   local typ, f, l, txt
-  typ, f, l, txt = string.match(line, "([a-z]+): (.*):(%d*): (.*)")
+  typ, f, l, txt = string.match(line, '([a-z]+): (.*):(%d*): (.*)')
   if typ then
     return { type = typ, filename = f, lnum = l, text = txt }
   else
@@ -154,45 +160,51 @@ end
 local function process_message(json)
   -- p(json)
   local msg = json[1]
-  if msg == "reset-sync" then
+  if msg == 'reset-sync' then
     job.generation = {}
-  elseif msg == "synctex" then
-    vim.schedule(function() synctex_backward(json[2], json[3]) end)
-  elseif msg == "truncate-lines" then
+  elseif msg == 'synctex' then
+    vim.schedule(function()
+      synctex_backward(json[2], json[3])
+    end)
+  elseif msg == 'truncate-lines' then
     local name = json[2]
     local count = json[3]
-    if name == "log" then
+    if name == 'log' then
       shrink(M.log, count)
-      expand(M.log, count, "")
-    elseif name == "out" then
+      expand(M.log, count, '')
+    elseif name == 'out' then
       expand(M.fix, count, {})
       M.fixcursor = count
     end
-  elseif msg == "append-lines" then
+  elseif msg == 'append-lines' then
     local name = json[2]
-    if name == "log" then
-      for i=3,#json do
+    if name == 'log' then
+      for i = 3, #json do
         table.insert(M.log, json[i])
       end
-    elseif name == "out" then
-      for i=3,#json do
+    elseif name == 'out' then
+      for i = 3, #json do
         local cursor = M.fixcursor + 1
         M.fixcursor = cursor
         M.fix[cursor] = format_fix(json[i])
       end
-      vim.schedule(function() setqf(M.fix) end)
+      vim.schedule(function()
+        setqf(M.fix)
+      end)
     end
-  elseif msg == "flush" then
+  elseif msg == 'flush' then
     shrink(M.fix, M.fixcursor)
-    vim.schedule(function() setqf(M.fix) end)
+    vim.schedule(function()
+      setqf(M.fix)
+    end)
   end
 end
 
 -- Send a command to TeXpresso
 function M.send(...)
-  local text = vim.json.encode({...})
+  local text = vim.json.encode({ ... })
   if job.process then
-    vim.fn.chansend(job.process, {text, ""})
+    vim.fn.chansend(job.process, { text, '' })
   end
   -- p(text)
 end
@@ -200,7 +212,7 @@ end
 -- Reload buffer in TeXpresso
 function M.reload(buf)
   local path = vim.api.nvim_buf_get_name(buf)
-  M.send("open", path, buffer_get_lines(buf, 0, -1))
+  M.send('open', path, buffer_get_lines(buf, 0, -1))
 end
 
 -- Communicate changed lines
@@ -208,24 +220,25 @@ function M.change_lines(buf, index, count, last)
   -- p("on_lines " .. vim.inspect{buf, index, index + count, last})
   local path = vim.api.nvim_buf_get_name(buf)
   local lines = buffer_get_lines(buf, index, last)
-  M.send("change-lines", path, index, count, lines)
+  M.send('change-lines', path, index, count, lines)
 end
 
 -- Attach a hook to synchronize a buffer
 function M.attach(...)
-  local let args = {...}
+  local let
+  args = { ... }
   local buf = args[1] or 0
   local generation = job.generation
   M.reload(buf)
   vim.api.nvim_buf_attach(buf, false, {
-    on_detach=function(_detach, buf)
-      M.send("close", vim.api.nvim_buf_get_name(buf))
+    on_detach = function(_detach, buf)
+      M.send('close', vim.api.nvim_buf_get_name(buf))
     end,
-    on_reload=function(_reload, buf)
+    on_reload = function(_reload, buf)
       M.reload(buf)
       generation = job.generation
     end,
-    on_lines=function(_lines, buf, _tick, first, oldlast, newlast, _bytes)
+    on_lines = function(_lines, buf, _tick, first, oldlast, newlast, _bytes)
       if generation == job.generation then
         M.change_lines(buf, first, oldlast - first, newlast)
       else
@@ -240,35 +253,31 @@ end
 
 -- Use VIM theme in TeXpresso
 function M.theme()
-  local colors = vim.api.nvim_get_hl_by_name("Normal", true)
+  local colors = vim.api.nvim_get_hl_by_name('Normal', true)
   if colors.background and colors.foreground then
-    M.send(
-      "theme",
-      format_color(colors.background),
-      format_color(colors.foreground)
-    )
+    M.send('theme', format_color(colors.background), format_color(colors.foreground))
   end
 end
 
 -- Go to next page
 function M.next_page()
-  M.send("next-page")
+  M.send('next-page')
 end
 
 -- Go to previous page
 function M.previous_page()
-  M.send("previous-page")
+  M.send('previous-page')
 end
 
 -- Go to the page under the cursor
 function M.synctex_forward()
-  local line,_col = unpack(vim.api.nvim_win_get_cursor(0))
+  local line, _col = unpack(vim.api.nvim_win_get_cursor(0))
   local file = vim.api.nvim_buf_get_name(0)
-  M.send("synctex-forward", file, line)
+  M.send('synctex-forward', file, line)
 end
 
 local last_line = -1
-local last_file = ""
+local last_file = ''
 
 function M.synctex_forward_hook()
   if skip_synctex then
@@ -276,14 +285,14 @@ function M.synctex_forward_hook()
     return
   end
 
-  local line,_col = unpack(vim.api.nvim_win_get_cursor(0))
+  local line, _col = unpack(vim.api.nvim_win_get_cursor(0))
   local file = vim.api.nvim_buf_get_name(0)
   if last_line == line and last_file == file then
     return
   end
   last_line = line
   last_file = file
-  M.send("synctex-forward", file, line)
+  M.send('synctex-forward', file, line)
 end
 
 -- Start a new TeXpresso viewer
@@ -291,7 +300,7 @@ function M.launch(args)
   if job.process then
     vim.fn.chanclose(job.process)
   end
-  cmd = {M.texpresso_path, "-json", "-lines"}
+  cmd = { M.texpresso_path, '-json', '-lines' }
 
   if #args == 0 then
     args = M.last_args
@@ -299,41 +308,41 @@ function M.launch(args)
     M.last_args = args
   end
   if #args == 0 then
-    print("No root file has been specified, use e.g. :TeXpresso main.tex")
+    print('No root file has been specified, use e.g. :TeXpresso main.tex')
     return
   end
 
   for _, arg in ipairs(args) do
-      table.insert(cmd, arg)
+    table.insert(cmd, arg)
   end
-  job.queued = ""
+  job.queued = ''
   job.process = vim.fn.jobstart(cmd, {
-      on_stdout = function(j, data, e)
-        if job.queued then
-          data[1] = job.queued .. data[1]
-        end
-        job.queued = table.remove(data)
-        for _, line in ipairs(data) do
-          if line ~= "" then
-            local ok, val = pcall(function ()
-              process_message(vim.json.decode(line))
-            end)
-            if not ok then
-              p("error while processing input", line, val)
-            end
+    on_stdout = function(j, data, e)
+      if job.queued then
+        data[1] = job.queued .. data[1]
+      end
+      job.queued = table.remove(data)
+      for _, line in ipairs(data) do
+        if line ~= '' then
+          local ok, val = pcall(function()
+            process_message(vim.json.decode(line))
+          end)
+          if not ok then
+            p('error while processing input', line, val)
           end
         end
-      end,
-      on_stderr = function(j, d, e)
-        local buf = log_buffer()
-        buffer_append(buf, d)
-        if vim.api.nvim_buf_line_count(buf) > 8000 then
-          vim.api.nvim_buf_set_lines(buf, 0, -4000, false, {})
-        end
-      end,
-      on_exit = function()
-        job.process = nil
-      end,
+      end
+    end,
+    on_stderr = function(j, d, e)
+      local buf = log_buffer()
+      buffer_append(buf, d)
+      if vim.api.nvim_buf_line_count(buf) > 8000 then
+        vim.api.nvim_buf_set_lines(buf, 0, -4000, false, {})
+      end
+    end,
+    on_exit = function()
+      job.process = nil
+    end,
   })
   job.generation = {}
   M.theme()
@@ -341,24 +350,19 @@ end
 
 -- Hooks
 
-vim.api.nvim_create_autocmd("ColorScheme", {
-  callback = M.theme
+vim.api.nvim_create_autocmd('ColorScheme', {
+  callback = M.theme,
 })
 
-vim.api.nvim_create_autocmd("CursorMoved", {
-  pattern = {"*.tex"},
-  callback = M.synctex_forward_hook
+vim.api.nvim_create_autocmd('CursorMoved', {
+  pattern = { '*.tex' },
+  callback = M.synctex_forward_hook,
 })
 
 -- VIM commands
 
-vim.api.nvim_create_user_command('TeXpresso',
-  function(opts)
-    M.launch(opts.fargs)
-  end,
-  { nargs = "*",
-    complete = "file",
-  }
-)
+vim.api.nvim_create_user_command('TeXpresso', function(opts)
+  M.launch(opts.fargs)
+end, { nargs = '*', complete = 'file' })
 
 return M
