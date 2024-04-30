@@ -253,9 +253,9 @@ end
 
 -- Use VIM theme in TeXpresso
 function M.theme()
-  local colors = vim.api.nvim_get_hl_by_name('Normal', true)
-  if colors.background and colors.foreground then
-    M.send('theme', format_color(colors.background), format_color(colors.foreground))
+  local colors = vim.api.nvim_get_hl(0, { name = 'Normal' })
+  if colors.bg and colors.fg then
+    M.send('theme', format_color(colors.bg), format_color(colors.fg))
   end
 end
 
