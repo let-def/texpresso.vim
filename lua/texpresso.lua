@@ -1,5 +1,9 @@
 local M = {}
 
+-- Configuration
+
+M.texpresso_path = "texpresso"
+
 -- Logging routines
 
 -- Debug logging function, silent by default
@@ -148,7 +152,7 @@ end
 -- Process a message received from TeXpresso
 -- TODO: handle message, right now they are only logged
 local function process_message(json)
-  p(json)
+  -- p(json)
   local msg = json[1]
   if msg == "reset-sync" then
     job.generation = {}
@@ -190,7 +194,7 @@ function M.send(...)
   if job.process then
     vim.fn.chansend(job.process, {text, ""})
   end
-  p(text)
+  -- p(text)
 end
 
 -- Reload buffer in TeXpresso
@@ -201,7 +205,7 @@ end
 
 -- Communicate changed lines
 function M.change_lines(buf, index, count, last)
-  p("on_lines " .. vim.inspect{buf, index, index + count, last})
+  -- p("on_lines " .. vim.inspect{buf, index, index + count, last})
   local path = vim.api.nvim_buf_get_name(buf)
   local lines = buffer_get_lines(buf, index, last)
   M.send("change-lines", path, index, count, lines)
@@ -287,7 +291,7 @@ function M.launch(args)
   if job.process then
     vim.fn.chanclose(job.process)
   end
-  cmd = {"texpresso", "-json", "-lines"}
+  cmd = {M.texpresso_path, "-json", "-lines"}
 
   if #args == 0 then
     args = M.last_args

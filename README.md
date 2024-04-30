@@ -25,6 +25,18 @@ TODO:
 - allow customization: theme, cursor synchronizaiton, bindings, stay-on-top, ..
 - simplify initialization, respect Neovim conventions, make code more robust
 
+## Configuration
+
+The mode can be customized by changing some lua variables.
+
+### `texpresso_path`
+
+You can customize the path to texpresso binary:
+
+```lua
+:lua require('texpresso').texpresso_path = "/home/.../texpresso/build/texpresso"
+```
+
 ## Screenshots
 
 Launching TeXpresso in vim:
