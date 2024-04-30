@@ -354,7 +354,7 @@ vim.api.nvim_create_autocmd('ColorScheme', {
 })
 
 vim.api.nvim_create_autocmd('CursorMoved', {
-  pattern = { '*.tex' },
+  pattern = '*.tex',
   callback = M.synctex_forward_hook,
 })
 
