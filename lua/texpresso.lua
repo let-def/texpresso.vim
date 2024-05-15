@@ -204,11 +204,59 @@ function M.reload(buf)
 end
 
 -- Communicate changed lines
-function M.change_lines(buf, index, count, last)
+local function change_lines(path, index, count, lines)
   -- p("on_lines " .. vim.inspect{buf, index, index + count, last})
-  local path = vim.api.nvim_buf_get_name(buf)
-  local lines = buffer_get_lines(buf, index, last)
   M.send("change-lines", path, index, count, lines)
+end
+
+local scheduled_changes = {}
+
+local function process_changes()
+  for buf, state in pairs(scheduled_changes) do
+    if state.reload then
+      M.reload(buf)
+    else
+      local path = vim.api.nvim_buf_get_name(buf)
+      for _, v in pairs(state.changes) do
+        change_lines(path, v.first, v.count, v.lines)
+      end
+    end
+  end
+  scheduled_changes = {}
+end
+
+local function schedule_process(buf)
+  if #scheduled_changes == 0 then
+    vim.schedule(process_changes)
+  end
+  local state = scheduled_changes[buf]
+  if state == nil then
+    state = {
+      reload = false,
+      changes = {}
+    }
+    scheduled_changes[buf] = state
+  end
+  return state
+end
+
+local function schedule_change(buf, first, count, last)
+  local state = schedule_process(buf)
+  if state.reload then
+    return
+  end
+  local lines = buffer_get_lines(buf, first, last)
+  table.insert(state.changes, {
+    first = first,
+    count = count,
+    lines = lines
+  })
+end
+
+local function schedule_reload(buf)
+  local state = schedule_process(buf)
+  state.reload = true
+  state.changes = {}
 end
 
 -- Attach a hook to synchronize a buffer
@@ -222,14 +270,14 @@ function M.attach(...)
       M.send("close", vim.api.nvim_buf_get_name(buf))
     end,
     on_reload=function(_reload, buf)
-      M.reload(buf)
+      schedule_reload(buf)
       generation = job.generation
     end,
     on_lines=function(_lines, buf, _tick, first, oldlast, newlast, _bytes)
       if generation == job.generation then
-        M.change_lines(buf, first, oldlast - first, newlast)
+        schedule_change(buf, first, oldlast - first, newlast)
       else
-        M.reload(buf)
+        schedule_reload(buf)
         generation = job.generation
       end
     end,
