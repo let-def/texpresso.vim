@@ -312,7 +312,7 @@ end
 function M.synctex_forward()
   local line,_col = unpack(vim.api.nvim_win_get_cursor(0))
   local file = vim.api.nvim_buf_get_name(0)
-  M.send("synctex-forward", file, line)
+  vim.schedule(function () M.send("synctex-forward", file, line) end)
 end
 
 local last_line = -1
