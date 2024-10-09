@@ -52,6 +52,9 @@ end
 -- lines.
 local function buffer_append(buf, lines)
   local last = vim.api.nvim_buf_get_lines(buf, -2, -1, false)
+  if last == nil then
+    return
+  end
   lines[1] = last[1] .. lines[1]
   vim.api.nvim_buf_set_lines(buf, -2, -1, false, lines)
 end
